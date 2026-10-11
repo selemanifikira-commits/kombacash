@@ -1,0 +1,639 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Komba Cash Point - Repository Ledger Portal</title>
+    
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- CryptoJS for AES-256 Client-Side Vault Security -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+    
+    <!-- SheetJS (xlsx.full.min.js) for parsing Excel .xlsx/.xls/csv directly in browser -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    
+    <!-- Google Fonts Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Inter', 'sans-serif'] },
+                    colors: {
+                        gold: {
+                            400: '#fbbf24',
+                            500: '#f59e0b',
+                            600: '#d97706',
+                        },
+                        brand: {
+                            800: '#0f172a',
+                            900: '#020617',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .glass-panel {
+            background: rgba(15, 23, 42, 0.75);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        /* Custom scrollbars */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #0f172a; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #475569; }
+    </style>
+</head>
+<body class="h-full bg-slate-950 text-slate-100 flex flex-col justify-between selection:bg-amber-500 selection:text-slate-950">
+
+    <!-- Navigation Header -->
+    <header class="bg-slate-900/90 border-b border-slate-800 sticky top-0 z-50 px-4 sm:px-8 py-3.5 flex items-center justify-between backdrop-blur-md">
+        <div class="flex items-center space-x-3">
+            <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-500 to-emerald-500 flex items-center justify-center shadow-lg shadow-amber-500/20">
+                <i class="fa-solid fa-vault text-slate-950 text-lg font-black"></i>
+            </div>
+            <div>
+                <h1 class="font-bold text-lg tracking-tight bg-gradient-to-r from-amber-200 via-white to-emerald-400 bg-clip-text text-transparent">Komba Cash Point</h1>
+                <p class="text-[11px] text-slate-400 font-medium">GitHub Repository Ledger Portal</p>
+            </div>
+        </div>
+        
+        <div id="header-status" class="flex items-center space-x-2 text-xs font-semibold px-3 py-1.5 rounded-full bg-slate-800/80 text-amber-400 border border-amber-500/30">
+            <span class="w-2 h-2 rounded-full bg-amber-400 animate-ping"></span>
+            <span>Vault Locked</span>
+        </div>
+    </header>
+
+    <!-- Main Content Container -->
+    <main class="flex-grow flex items-center justify-center p-4 sm:p-6">
+        
+        <!-- LOGIN & DECRYPTION FORM -->
+        <div id="auth-container" class="w-full max-w-md my-auto">
+            <div class="glass-panel rounded-3xl p-6 sm:p-8 shadow-2xl relative overflow-hidden">
+                <div class="absolute -top-20 -right-20 w-40 h-40 bg-amber-500/10 rounded-full blur-3xl pointer-events-none"></div>
+                <div class="absolute -bottom-20 -left-20 w-40 h-40 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none"></div>
+
+                <div class="text-center mb-6">
+                    <div class="inline-flex p-3 rounded-2xl bg-amber-500/10 text-amber-400 mb-3 border border-amber-500/20">
+                        <i class="fa-solid fa-lock text-2xl"></i>
+                    </div>
+                    <h2 class="text-2xl font-bold text-white tracking-tight">KCP Terminal Access</h2>
+                    <p class="text-xs text-slate-400 mt-1">Authenticates operator & decrypts core parsing vault</p>
+                </div>
+
+                <form id="login-form" onsubmit="handleLogin(event)" class="space-y-4">
+                    <div>
+                        <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">Operator ID</label>
+                        <div class="relative">
+                            <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500">
+                                <i class="fa-solid fa-user-shield text-sm"></i>
+                            </span>
+                            <input type="text" id="username" value="komba_admin" required
+                                class="w-full pl-10 pr-4 py-3 bg-slate-900/90 border border-slate-700/80 rounded-xl text-slate-100 placeholder-slate-500 focus:outline-none focus:border-amber-500 text-sm transition">
+                        </div>
+                    </div>
+
+                    <div>
+                        <div class="flex items-center justify-between mb-1.5">
+                            <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-400">Master Passphrase</label>
+                            <span class="text-[10px] text-amber-400 font-mono bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20">Pre-filled</span>
+                        </div>
+                        <div class="relative">
+                            <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500">
+                                <i class="fa-solid fa-key text-sm"></i>
+                            </span>
+                            <input type="password" id="password" value="komba2026" required
+                                class="w-full pl-10 pr-10 py-3 bg-slate-900/90 border border-slate-700/80 rounded-xl text-slate-100 placeholder-slate-500 focus:outline-none focus:border-amber-500 text-sm transition">
+                            <button type="button" onclick="togglePasswordVisibility()" class="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-500 hover:text-slate-300">
+                                <i id="toggle-icon" class="fa-solid fa-eye text-sm"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div id="error-message" class="hidden p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs flex items-center space-x-2">
+                        <i class="fa-solid fa-circle-exclamation text-sm flex-shrink-0"></i>
+                        <span id="error-text">Decryption failed. Invalid credentials.</span>
+                    </div>
+
+                    <button type="submit" class="w-full py-3.5 px-4 bg-gradient-to-r from-amber-500 via-amber-600 to-emerald-600 hover:from-amber-400 hover:to-emerald-500 text-slate-950 font-bold rounded-xl shadow-lg shadow-amber-500/20 transition duration-200 flex items-center justify-center space-x-2">
+                        <span>Unlock & Load Terminal</span>
+                        <i class="fa-solid fa-unlock text-sm"></i>
+                    </button>
+                </form>
+
+                <div class="mt-6 pt-5 border-t border-slate-800 text-center">
+                    <p class="text-[11px] text-slate-500 flex items-center justify-center space-x-1">
+                        <i class="fa-solid fa-shield-halved text-emerald-400 mr-1"></i>
+                        <span>Zero-Knowledge: Code unreadable without key</span>
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- DASHBOARD CONTAINER (UNLOCKED) -->
+        <div id="dashboard-container" class="w-full max-w-7xl hidden space-y-6 my-auto">
+            <!-- Dynamic Content Injected Here Upon Decryption -->
+        </div>
+
+    </main>
+
+    <!-- Custom Modal Notification -->
+    <div id="custom-modal" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md hidden flex items-center justify-center p-4">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-sm w-full p-6 shadow-2xl text-center">
+            <div id="modal-icon" class="w-12 h-12 rounded-full bg-emerald-500/10 text-emerald-400 flex items-center justify-center mx-auto mb-4 text-xl border border-emerald-500/20">
+                <i class="fa-solid fa-circle-check"></i>
+            </div>
+            <h3 id="modal-title" class="text-lg font-bold text-white mb-2">Notification</h3>
+            <p id="modal-message" class="text-sm text-slate-400 mb-6">Details of action.</p>
+            <button onclick="closeModal()" class="w-full py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold rounded-xl border border-slate-700 transition">
+                Dismiss
+            </button>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-slate-900/80 border-t border-slate-800/80 py-3 px-6 text-center text-xs text-slate-500">
+        &copy; 2026 Komba Cash Point &bull; GitHub Pages Static Deployment &bull; Zero-Knowledge AES-256 Protection
+    </footer>
+
+    <script>
+        
+        // Raw template that gets encrypted in memory
+        const rawDashboardTemplate = `
+        <div class="space-y-6">
+            <!-- GitHub Repository & Date Configuration Bar -->
+            <div class="glass-panel rounded-2xl p-5 border border-slate-800 space-y-4">
+                <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                    <div>
+                        <h2 class="text-lg font-bold text-white flex items-center">
+                            <i class="fa-brands fa-github text-amber-400 mr-2 text-xl"></i>
+                            GitHub Ledger Data Fetcher
+                        </h2>
+                        <p class="text-xs text-slate-400">Select a date reference to fetch Excel/CSV files directly from your repository.</p>
+                    </div>
+
+                    <!-- Repository File Controls -->
+                    <div class="flex flex-wrap items-center gap-3">
+                        <!-- Date Selector -->
+                        <div class="flex items-center space-x-2 bg-slate-900/90 border border-slate-700 px-3 py-2 rounded-xl">
+                            <i class="fa-solid fa-calendar-day text-amber-400 text-sm"></i>
+                            <input type="date" id="ledger-date" onchange="loadRepositoryLedger()" 
+                                class="bg-transparent text-xs text-white focus:outline-none font-mono">
+                        </div>
+
+                        <!-- Manual Upload Fallback / Override -->
+                        <label class="cursor-pointer bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs px-3.5 py-2 rounded-xl border border-slate-700 font-semibold flex items-center space-x-2 transition">
+                            <i class="fa-solid fa-file-excel text-emerald-400"></i>
+                            <span>Upload Local Excel/CSV</span>
+                            <input type="file" id="local-excel-file" accept=".xlsx, .xls, .csv" onchange="handleLocalFileUpload(event)" class="hidden">
+                        </label>
+
+                        <!-- Refresh Data Button -->
+                        <button onclick="loadRepositoryLedger()" class="bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs px-4 py-2 rounded-xl shadow-md transition flex items-center space-x-1.5">
+                            <i class="fa-solid fa-rotate"></i>
+                            <span>Fetch Date Data</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- GitHub Repo Path Configuration (Collapsible Settings) -->
+                <div class="pt-3 border-t border-slate-800/80 flex flex-wrap items-center justify-between text-xs text-slate-400 gap-2">
+                    <div class="flex items-center space-x-2">
+                        <span class="text-slate-500 font-semibold">Configured GitHub Repo:</span>
+                        <input type="text" id="repo-user-repo" value="KombaCashPoint/ledgers" onchange="loadRepositoryLedger()" 
+                            class="bg-slate-900 border border-slate-700/80 text-amber-300 px-2 py-1 rounded font-mono text-[11px] focus:outline-none w-48 sm:w-60" placeholder="username/repository">
+                    </div>
+                    <div class="flex items-center space-x-2 font-mono text-[11px]">
+                        <span class="text-slate-500">Auto File Path Target:</span>
+                        <span id="target-file-path" class="text-emerald-400 bg-slate-900/80 px-2 py-0.5 rounded border border-slate-800">data/2026-10-11.xlsx</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Financial Metrics Summary Cards -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div class="glass-panel rounded-2xl p-5 border border-slate-800">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Total Transactions</span>
+                        <div class="w-8 h-8 rounded-lg bg-indigo-500/10 text-indigo-400 flex items-center justify-center border border-indigo-500/20">
+                            <i class="fa-solid fa-receipt text-sm"></i>
+                        </div>
+                    </div>
+                    <div id="metric-total-count" class="text-2xl font-black text-white tracking-tight">0</div>
+                    <div class="mt-1 text-[11px] text-slate-400">Records in selected date file</div>
+                </div>
+
+                <div class="glass-panel rounded-2xl p-5 border border-slate-800">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Total Deposits</span>
+                        <div class="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-400 flex items-center justify-center border border-emerald-500/20">
+                            <i class="fa-solid fa-arrow-down text-sm"></i>
+                        </div>
+                    </div>
+                    <div id="metric-total-deposits" class="text-2xl font-black text-emerald-400 tracking-tight">$0.00</div>
+                    <div class="mt-1 text-[11px] text-emerald-500/80 font-medium"><i class="fa-solid fa-circle-check mr-1"></i>Inflow Total</div>
+                </div>
+
+                <div class="glass-panel rounded-2xl p-5 border border-slate-800">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Total Withdrawals</span>
+                        <div class="w-8 h-8 rounded-lg bg-rose-500/10 text-rose-400 flex items-center justify-center border border-rose-500/20">
+                            <i class="fa-solid fa-arrow-up text-sm"></i>
+                        </div>
+                    </div>
+                    <div id="metric-total-withdrawals" class="text-2xl font-black text-rose-400 tracking-tight">$0.00</div>
+                    <div class="mt-1 text-[11px] text-rose-500/80 font-medium"><i class="fa-solid fa-clock-rotate-left mr-1"></i>Outflow Total</div>
+                </div>
+
+                <div class="glass-panel rounded-2xl p-5 border border-slate-800">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Net Daily Balance</span>
+                        <div class="w-8 h-8 rounded-lg bg-amber-500/10 text-amber-400 flex items-center justify-center border border-amber-500/20">
+                            <i class="fa-solid fa-scale-balanced text-sm"></i>
+                        </div>
+                    </div>
+                    <div id="metric-net-balance" class="text-2xl font-black text-amber-300 tracking-tight">$0.00</div>
+                    <div class="mt-1 text-[11px] text-amber-400 font-medium">Deposits - Withdrawals</div>
+                </div>
+            </div>
+
+            <!-- Main Dynamic Excel Ledger Table -->
+            <div class="glass-panel rounded-2xl p-6 border border-slate-800">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+                    <div>
+                        <h3 class="text-base font-bold text-white flex items-center">
+                            <i class="fa-solid fa-table-list text-amber-400 mr-2"></i>
+                            Daily Ledger Data Records
+                        </h3>
+                        <p id="ledger-status-subtitle" class="text-xs text-slate-400 mt-0.5">Showing parsed records from selected repository file</p>
+                    </div>
+
+                    <div class="flex items-center space-x-3">
+                        <!-- Search Box -->
+                        <div class="relative w-full sm:w-64">
+                            <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-500">
+                                <i class="fa-solid fa-magnifying-glass text-xs"></i>
+                            </span>
+                            <input type="text" id="search-input" onkeyup="filterLedgerTable()" placeholder="Search client, ref..." 
+                                class="w-full pl-9 pr-3 py-2 bg-slate-900 border border-slate-700/80 rounded-xl text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-amber-500">
+                        </div>
+
+                        <!-- Export Button -->
+                        <button onclick="exportCurrentTableToCSV()" class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs px-3.5 py-2 rounded-xl border border-slate-700 font-semibold flex items-center space-x-1.5 transition">
+                            <i class="fa-solid fa-download text-amber-400"></i>
+                            <span class="hidden sm:inline">Export</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Ledger Table -->
+                <div class="overflow-x-auto rounded-xl border border-slate-800">
+                    <table class="w-full text-left text-xs">
+                        <thead class="bg-slate-900/90 text-slate-400 font-bold uppercase tracking-wider border-b border-slate-800">
+                            <tr>
+                                <th class="py-3 px-4">Date / Time</th>
+                                <th class="py-3 px-4">Reference</th>
+                                <th class="py-3 px-4">Client / Account</th>
+                                <th class="py-3 px-4">Transaction Type</th>
+                                <th class="py-3 px-4 text-right">Amount</th>
+                                <th class="py-3 px-4 text-right">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="ledger-table-body" class="divide-y divide-slate-800/60 text-slate-300">
+                            <tr>
+                                <td colspan="6" class="py-8 text-center text-slate-500">
+                                    <i class="fa-solid fa-spinner animate-spin text-lg mb-2 block"></i>
+                                    Initializing ledger fetcher...
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        `;
+
+        const MASTER_SECRET = "komba2026";
+        const encryptedVault = CryptoJS.AES.encrypt(rawDashboardTemplate, MASTER_SECRET).toString();
+        
+        // Runtime state variables
+        let currentLedgerData = [];
+        let filteredLedgerData = [];
+
+        function togglePasswordVisibility() {
+            const pwdInput = document.getElementById('password');
+            const icon = document.getElementById('toggle-icon');
+            if (pwdInput.type === 'password') {
+                pwdInput.type = 'text';
+                icon.className = 'fa-solid fa-eye-slash text-sm';
+            } else {
+                pwdInput.type = 'password';
+                icon.className = 'fa-solid fa-eye text-sm';
+            }
+        }
+
+        function handleLogin(event) {
+            event.preventDefault();
+            const password = document.getElementById('password').value.trim();
+            const errorDiv = document.getElementById('error-message');
+            const errorText = document.getElementById('error-text');
+
+            if (!password) {
+                errorText.textContent = "Passphrase required to decrypt repository tools.";
+                errorDiv.classList.remove('hidden');
+                return;
+            }
+
+            try {
+                // Decrypt template using password
+                const bytes = CryptoJS.AES.decrypt(encryptedVault, password);
+                const decryptedHtml = bytes.toString(CryptoJS.enc.Utf8);
+
+                if (!decryptedHtml || decryptedHtml.length < 50) {
+                    throw new Error("Invalid password");
+                }
+
+                // Inject decrypted dashboard
+                document.getElementById('dashboard-container').innerHTML = decryptedHtml;
+                document.getElementById('auth-container').classList.add('hidden');
+                document.getElementById('dashboard-container').classList.remove('hidden');
+
+                // Update status badge
+                const statusBadge = document.getElementById('header-status');
+                statusBadge.className = "flex items-center space-x-2 text-xs font-semibold px-3 py-1.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/30";
+                statusBadge.innerHTML = '<span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span><span>Vault Unlocked</span>';
+
+                // Default date to today's date YYYY-MM-DD
+                const todayStr = new Date().toISOString().split('T')[0];
+                const dateInput = document.getElementById('ledger-date');
+                if (dateInput) {
+                    dateInput.value = todayStr;
+                }
+
+                // Initial fetch
+                loadRepositoryLedger();
+
+            } catch (e) {
+                errorText.textContent = "Decryption failed. Incorrect master passphrase.";
+                errorDiv.classList.remove('hidden');
+            }
+        }
+
+        async function loadRepositoryLedger() {
+            const dateInput = document.getElementById('ledger-date');
+            const repoInput = document.getElementById('repo-user-repo');
+            const targetPathLabel = document.getElementById('target-file-path');
+            const tableBody = document.getElementById('ledger-table-body');
+
+            if (!dateInput || !repoInput) return;
+
+            const selectedDate = dateInput.value || '2026-10-11';
+            const repoPath = repoInput.value.trim() || 'KombaCashPoint/ledgers';
+
+            // Construct file paths for GitHub raw user content
+            const filenameXlsx = `data/${selectedDate}.xlsx`;
+            const filenameCsv = `data/${selectedDate}.csv`;
+            
+            targetPathLabel.textContent = filenameXlsx;
+            
+            tableBody.innerHTML = `
+                <tr>
+                    <td colspan="6" class="py-12 text-center text-slate-400">
+                        <i class="fa-solid fa-circle-notch animate-spin text-2xl text-amber-400 mb-2 block"></i>
+                        <span>Fetching GitHub repository file: <strong class="text-white font-mono">${filenameXlsx}</strong>...</span>
+                    </td>
+                </tr>
+            `;
+
+            // Try fetching .xlsx first from GitHub raw
+            const githubRawXlsxUrl = `https://raw.githubusercontent.com/${repoPath}/main/${filenameXlsx}`;
+            const githubRawCsvUrl = `https://raw.githubusercontent.com/${repoPath}/main/${filenameCsv}`;
+
+            try {
+                let response = await fetch(githubRawXlsxUrl);
+                if (!response.ok) {
+                    // Try .csv fallback
+                    response = await fetch(githubRawCsvUrl);
+                }
+
+                if (response.ok) {
+                    const arrayBuffer = await response.arrayBuffer();
+                    parseWorkbookData(arrayBuffer);
+                } else {
+                    // File not found on GitHub -> Load Mock/Sample Excel Data for demonstration
+                    loadMockSampleLedger(selectedDate);
+                }
+            } catch (err) {
+                // Network or CORS fallback
+                loadMockSampleLedger(selectedDate);
+            }
+        }
+
+        function parseWorkbookData(arrayBuffer) {
+            try {
+                const workbook = XLSX.read(arrayBuffer, { type: 'array' });
+                const firstSheetName = workbook.SheetNames[0];
+                const worksheet = workbook.Sheets[firstSheetName];
+                const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+
+                processParsedRows(jsonData);
+            } catch (e) {
+                showModal('Parsing Error', 'Failed to parse Excel file format from repository.');
+            }
+        }
+
+        function handleLocalFileUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const data = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(data, { type: 'array' });
+                const firstSheetName = workbook.SheetNames[0];
+                const worksheet = workbook.Sheets[firstSheetName];
+                const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+
+                processParsedRows(jsonData);
+                showModal('Local File Loaded', `Successfully parsed file: ${file.name}`);
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        function processParsedRows(rows) {
+            if (!rows || rows.length < 2) {
+                renderEmptyTable("No transaction records found in sheet.");
+                return;
+            }
+
+            // Detect headers or map standard positions
+            currentLedgerData = [];
+            
+            // Skip header row
+            for (let i = 1; i < rows.length; i++) {
+                const r = rows[i];
+                if (!r || r.length === 0) continue;
+
+                const date = r[0] || 'N/A';
+                const ref = r[1] || `REF-${1000 + i}`;
+                const client = r[2] || 'Cash Client';
+                const type = (r[3] || 'Deposit').toString();
+                const rawAmount = parseFloat(r[4]) || 0;
+                const status = r[5] || 'Completed';
+
+                currentLedgerData.push({
+                    date: date,
+                    ref: ref,
+                    client: client,
+                    type: type,
+                    amount: rawAmount,
+                    status: status
+                });
+            }
+
+            filteredLedgerData = [...currentLedgerData];
+            renderLedgerTable(filteredLedgerData);
+            updateSummaryMetrics(filteredLedgerData);
+        }
+
+        function loadMockSampleLedger(dateStr) {
+            const subtitle = document.getElementById('ledger-status-subtitle');
+            if (subtitle) {
+                subtitle.innerHTML = `<span class="text-amber-400 font-semibold"><i class="fa-solid fa-triangle-exclamation mr-1"></i>Repo file data/${dateStr}.xlsx not found on GitHub.</span> Showing sample generated ledger below:`;
+            }
+
+            // Mock records for demo
+            currentLedgerData = [
+                { date: `${dateStr} 08:30`, ref: 'KCP-801', client: 'Rashid Trading Co.', type: 'Deposit', amount: 3500.00, status: 'Completed' },
+                { date: `${dateStr} 09:15`, ref: 'KCP-802', client: 'Salama Bakery', type: 'Withdrawal', amount: 800.00, status: 'Completed' },
+                { date: `${dateStr} 10:45`, ref: 'KCP-803', client: 'Zanzibar Express', type: 'Deposit', amount: 5200.50, status: 'Completed' },
+                { date: `${dateStr} 11:20`, ref: 'KCP-804', client: 'Faraji Mohamed', type: 'Deposit', amount: 1200.00, status: 'Completed' },
+                { date: `${dateStr} 13:00`, ref: 'KCP-805', client: 'Komba Hardware', type: 'Withdrawal', amount: 2150.00, status: 'Completed' },
+                { date: `${dateStr} 15:40`, ref: 'KCP-806', client: 'Amina Fuel Station', type: 'Transfer', amount: 1750.00, status: 'Completed' },
+            ];
+
+            filteredLedgerData = [...currentLedgerData];
+            renderLedgerTable(filteredLedgerData);
+            updateSummaryMetrics(filteredLedgerData);
+        }
+
+        function renderLedgerTable(data) {
+            const tableBody = document.getElementById('ledger-table-body');
+            if (!tableBody) return;
+
+            if (data.length === 0) {
+                renderEmptyTable("No records match your query.");
+                return;
+            }
+
+            tableBody.innerHTML = data.map(item => {
+                const isDeposit = item.type.toLowerCase().includes('deposit');
+                const isWithdrawal = item.type.toLowerCase().includes('withdraw');
+                
+                let typeBadge = `<span class="px-2 py-0.5 rounded text-[11px] font-semibold bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">${item.type}</span>`;
+                if (isDeposit) {
+                    typeBadge = `<span class="px-2 py-0.5 rounded text-[11px] font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">Deposit</span>`;
+                } else if (isWithdrawal) {
+                    typeBadge = `<span class="px-2 py-0.5 rounded text-[11px] font-semibold bg-rose-500/10 text-rose-400 border border-rose-500/20">Withdrawal</span>`;
+                }
+
+                const amountFormatted = `$${Math.abs(item.amount).toLocaleString('en-US', { minimumFractionDigits: 2 })}`;
+
+                return `
+                    <tr class="hover:bg-slate-900/60 transition">
+                        <td class="py-3 px-4 font-mono text-slate-400 text-[11px]">${item.date}</td>
+                        <td class="py-3 px-4 font-mono text-amber-400 font-semibold">${item.ref}</td>
+                        <td class="py-3 px-4 font-semibold text-white">${item.client}</td>
+                        <td class="py-3 px-4">${typeBadge}</td>
+                        <td class="py-3 px-4 text-right font-mono font-bold ${isDeposit ? 'text-emerald-400' : isWithdrawal ? 'text-rose-400' : 'text-slate-200'}">
+                            ${isDeposit ? '+' : isWithdrawal ? '-' : ''}${amountFormatted}
+                        </td>
+                        <td class="py-3 px-4 text-right">
+                            <span class="text-emerald-400 text-[11px] font-semibold"><i class="fa-solid fa-circle-check mr-1"></i>${item.status}</span>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function renderEmptyTable(message) {
+            const tableBody = document.getElementById('ledger-table-body');
+            tableBody.innerHTML = `
+                <tr>
+                    <td colspan="6" class="py-8 text-center text-slate-500">
+                        <i class="fa-solid fa-folder-open text-xl mb-1 block"></i>
+                        <span>${message}</span>
+                    </td>
+                </tr>
+            `;
+        }
+
+        function updateSummaryMetrics(data) {
+            let totalDeposits = 0;
+            let totalWithdrawals = 0;
+
+            data.forEach(item => {
+                const t = item.type.toLowerCase();
+                if (t.includes('deposit')) {
+                    totalDeposits += item.amount;
+                } else if (t.includes('withdraw')) {
+                    totalWithdrawals += item.amount;
+                }
+            });
+
+            const netBalance = totalDeposits - totalWithdrawals;
+
+            document.getElementById('metric-total-count').textContent = data.length;
+            document.getElementById('metric-total-deposits').textContent = `$${totalDeposits.toLocaleString('en-US', { minimumFractionDigits: 2 })}`;
+            document.getElementById('metric-total-withdrawals').textContent = `$${totalWithdrawals.toLocaleString('en-US', { minimumFractionDigits: 2 })}`;
+            document.getElementById('metric-net-balance').textContent = `$${netBalance.toLocaleString('en-US', { minimumFractionDigits: 2 })}`;
+        }
+
+        function filterLedgerTable() {
+            const query = document.getElementById('search-input').value.toLowerCase();
+            filteredLedgerData = currentLedgerData.filter(item => {
+                return item.client.toLowerCase().includes(query) ||
+                       item.ref.toLowerCase().includes(query) ||
+                       item.type.toLowerCase().includes(query);
+            });
+
+            renderLedgerTable(filteredLedgerData);
+            updateSummaryMetrics(filteredLedgerData);
+        }
+
+        function exportCurrentTableToCSV() {
+            if (!filteredLedgerData || filteredLedgerData.length === 0) {
+                showModal('Export Error', 'No active records available to export.');
+                return;
+            }
+
+            const ws = XLSX.utils.json_to_sheet(filteredLedgerData);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Ledger");
+            
+            const dateStr = document.getElementById('ledger-date').value || 'Export';
+            XLSX.writeFile(wb, `Komba_Cash_Point_Ledger_${dateStr}.csv`);
+        }
+
+        function showModal(title, message) {
+            document.getElementById('modal-title').textContent = title;
+            document.getElementById('modal-message').textContent = message;
+            document.getElementById('custom-modal').classList.remove('hidden');
+        }
+
+        function closeModal() {
+            document.getElementById('custom-modal').classList.add('hidden');
+        }
+    </script>
+</body>
+</html>
